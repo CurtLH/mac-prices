@@ -93,8 +93,9 @@ with open('results.json') as f:
 # iterate over each response and pull out information
 clean = []
 for line in data:
-    soup = bs(data[line], "html.parser")
+    soup = bs(data[line]['response'], "html.parser")
     specs = get_details(soup)
+    specs['date_collected'] = data[line]['date_collected']
     specs['url'] = line
     specs['id_num'] = line.split('/')[5]
     specs['color'] = get_color(line.lower())
@@ -103,23 +104,20 @@ for line in data:
 # format data
 final = []
 for line in clean:
-    if 'macbook-pro' not in line['url'].lower():
-        pass
-    else:
-        row = {
-            'id': line['id_num'],
-            'url': line['url'],
-            'date': ' '.join(line['date'].split(' ')[2:]),
-            'memory': ";".join(line['memory']).split(' ')[0],
-            'storage': ";".join(line['storage']).split(' ')[0],
-            'graphics': ";".join(line['graphics']),
-            'price': line['price'],
-            'color': line['color']
-        }
-        final.append(row)
+    row = {
+        'id': line['id_num'],
+        'url': line['url'],
+        'date': ' '.join(line['date'].split(' ')[2:]),
+        'memory': ";".join(line['memory']).split(' ')[0],
+        'storage': ";".join(line['storage']).split(' ')[0],
+        'graphics': ";".join(line['graphics']),
+        'price': line['price'],
+        'color': line['color']
+    }
+    final.append(row)
 
 # write results to a CSV file
-with open('macbook_pro_refurb.csv', 'w') as f:
+with open('refurb_prices.csv', 'w') as f:
     writer = csv.DictWriter(f, final[0].keys())
     writer.writeheader()
     writer.writerows(final)

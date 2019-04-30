@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup as bs
 import json
+from datetime import datetime
 
 # get the URLs for all refurbished computers
 urls = []
@@ -15,10 +16,12 @@ print(len(urls), "URLs obtained")
 
 # collect data for each URL
 data = {}
-for url in urls:
+for url in urls[:10]:
     r = requests.get(url)
     if r.status_code == 200:
-        data[url] = r.content.decode('utf-8')
+        data[url]  = {}
+        data[url]['response']= r.content.decode('utf-8')
+        data[url]['date_collected'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # print status
 print(len(data), "ads collected")
