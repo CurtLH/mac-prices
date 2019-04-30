@@ -1,5 +1,11 @@
+import json
 from bs4 import BeautifulSoup as bs
 from collections import defaultdict
+import csv
+
+########################
+### HELPER FUNCTIONS ###
+########################
 
 def get_specs(soup):
 
@@ -15,6 +21,7 @@ def get_specs(soup):
 
     return dict(specs)
 
+
 def get_price(soup):
 
     price = soup.find("div",{"class":"as-price-currentprice as-pdp-currentprice as-pdp-refurbishedprice"})
@@ -24,6 +31,7 @@ def get_price(soup):
     price = float(price)
 
     return price
+
 
 def get_date(soup):
 
@@ -38,6 +46,7 @@ def get_date(soup):
 
     return date
 
+
 def get_screen(soup):
 
     specs = soup.find("div",{"class":"as-productinfosection-mainpanel column large-9 small-12"})
@@ -51,6 +60,7 @@ def get_screen(soup):
 
     return screen
 
+
 def get_color(url):
 
     if 'space-gray' in url:
@@ -59,6 +69,7 @@ def get_color(url):
         return 'silver'
     else:
         return 'N/A'
+
 
 def get_details(soup):
 
@@ -70,15 +81,24 @@ def get_details(soup):
 
     return specs
 
+
+####################
+### MAIN PROGRAM ###
+####################
+
+# read in JSON data
+with open('results.json') as f:
+    data = json.load(f)
+
 # iterate over each response and pull out information
 clean = []
-for line in data :
-    if line.status_code == 200:
-        soup = bs(line.content, "html.parser")
-        specs = get_details(soup)
-        specs['url'] = line.url
-        specs['color'] = get_color(line.url.lower())
-        clean.append(specs)
+for line in data:
+    soup = bs(data[line], "html.parser")
+    specs = get_details(soup)
+    specs['url'] = line
+    specs['id_num'] = line.split('/')[5]
+    specs['color'] = get_color(line.lower())
+    clean.append(specs)
 
 # format data
 final = []
@@ -87,6 +107,7 @@ for line in clean:
         pass
     else:
         row = {
+            'id': line['id_num'],
             'url': line['url'],
             'date': ' '.join(line['date'].split(' ')[2:]),
             'memory': ";".join(line['memory']).split(' ')[0],
