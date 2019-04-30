@@ -16,7 +16,7 @@ print(len(urls), "URLs obtained")
 
 # collect data for each URL
 data = {}
-for url in urls[:10]:
+for url in urls:
     r = requests.get(url)
     if r.status_code == 200:
         data[url]  = {}
