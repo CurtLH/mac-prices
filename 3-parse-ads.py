@@ -90,6 +90,9 @@ def get_details(soup):
 with open('results.json') as f:
     data = json.load(f)
 
+# print status
+print(len(data), "records read in")
+
 # iterate over each response and pull out information
 clean = []
 for line in data:
@@ -115,6 +118,9 @@ for line in clean:
         'color': line['color']
     }
     final.append(row)
+
+# print status
+print(len(final), "records parsed")
 
 # write results to a CSV file
 with open('refurb_prices.csv', 'w') as f:

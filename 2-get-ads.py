@@ -1,7 +1,42 @@
+import logging
+import psycopg2
 import requests
 from bs4 import BeautifulSoup as bs
-import json
 from datetime import datetime
+import json
+
+# enable logging
+logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s',
+                                                datefmt="%Y-%m-%d %H:%M:%S")
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+
+try:
+
+    # connect to the database
+    conn = psycopg2.connect(database="postgres",
+                            user="postgres",
+                            password="apassword",                                                                                host="localhost")
+
+    # enable autocommit
+    conn.autocommit = True
+
+    # define the cursor to be able to write to the database
+    cur = conn.cursor()
+    logging.info("Successfully connected to the database")
+
+except:
+
+    logging.info("Unable to connect to the database")
+
+# create table for results
+cur.execute("""CREATE TABLE IF NOT EXISTS refurb_mac 
+               (id serial,
+                datetime timestamp,
+                response jsonb);""")
+logging.info("Table created")
 
 # get the URLs for all refurbished computers
 urls = []
@@ -15,17 +50,20 @@ for a in ads.find_all('a', href=True):
 print(len(urls), "URLs obtained")
 
 # collect data for each URL
-data = {}
 for url in urls:
     r = requests.get(url)
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     if r.status_code == 200:
-        data[url]  = {}
-        data[url]['response']= r.content.decode('utf-8')
-        data[url]['date_collected'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-# print status
-print(len(data), "ads collected")
+        # put relevant info into a dictionary
+        data = {}
+        data['datetime'] = now
+        data['url'] = url        
+        data['response']= r.content.decode('utf-8')
 
-# write results to a JSON file
-with open('results.json', 'w') as f:
-    json.dump(data, f)
+        # convert dictionary to JSON
+        response = json.dumps(data)
+
+        # insert record into database
+        cur.execute("INSERT INTO refurb_mac (datetime, response) VALUES (%s, %s)", [now, response])
+        logger.info("New record inserted into database")
