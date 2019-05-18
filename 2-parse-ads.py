@@ -1,7 +1,16 @@
+import logging
+import os
 import json
+import psycopg2
 from bs4 import BeautifulSoup as bs
 from collections import defaultdict
-import csv
+
+# enable logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s',
+                    datefmt="%Y-%m-%d %H:%M:%S")
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 ########################
 ### HELPER FUNCTIONS ###
@@ -86,44 +95,56 @@ def get_details(soup):
 ### MAIN PROGRAM ###
 ####################
 
-# read in JSON data
-with open('results.json') as f:
-    data = json.load(f)
+# connect to the databse
+try:
 
-# print status
-print(len(data), "records read in")
+    # connect to the database
+    conn = psycopg2.connect(database="ads",
+                            user=os.environ['PSQL_USER'],
+                            password=os.environ['PSQL_PASSWORD'],
+                            host=os.environ['PSQL_HOST'])
+
+    # enable autocommit
+    conn.autocommit = True
+
+    # define the cursor to be able to write to the database
+    cur = conn.cursor()
+    logging.info("Successfully connected to the database")
+
+except:
+    logging.info("Unable to connect to the database")
+
+
+# get the data from the table
+cur.execute("""
+        SELECT response
+        FROM refurb_mac;
+        """)
+items = [line for line in cur]
+logging.info("Number of ads to parse: {}:".format(len(items)))
 
 # iterate over each response and pull out information
 clean = []
-for line in data:
-    soup = bs(data[line]['response'], "html.parser")
+for line in items:
+    soup = bs(line[0]['response'], "html.parser")
     specs = get_details(soup)
-    specs['date_collected'] = data[line]['date_collected']
+    specs['date_collected'] = line[0]['datetime']
     specs['url'] = line
-    specs['id_num'] = line.split('/')[5]
-    specs['color'] = get_color(line.lower())
+    specs['id_num'] = line[0]['url'].split('/')[5]
+    specs['color'] = get_color(line[0]['url'].lower())
     clean.append(specs)
 
-# format data
-final = []
+# create a table to write clean results to
+cur.execute("""CREATE TABLE IF NOT EXISTS refurb_mac_details
+               (id SERIAL,
+                details jsonb);""")
+
+# load the data into the database
 for line in clean:
-    row = {
-        'id': line['id_num'],
-        'url': line['url'],
-        'date': ' '.join(line['date'].split(' ')[2:]),
-        'memory': ";".join(line['memory']).split(' ')[0],
-        'storage': ";".join(line['storage']).split(' ')[0],
-        'graphics': ";".join(line['graphics']),
-        'price': line['price'],
-        'color': line['color']
-    }
-    final.append(row)
-
-# print status
-print(len(final), "records parsed")
-
-# write results to a CSV file
-with open('refurb_prices.csv', 'w') as f:
-    writer = csv.DictWriter(f, final[0].keys())
-    writer.writeheader()
-    writer.writerows(final)
+    cur.execute("""
+    INSERT INTO refurb_mac_details 
+    (details)
+    VALUES
+    (%s)
+    """, [json.dumps(line)])
+    logging.info("New records inserted into the database")

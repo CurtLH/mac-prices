@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-
+# try to connect to the database
 try:
 
     # connect to the database
@@ -30,7 +30,6 @@ try:
     logging.info("Successfully connected to the database")
 
 except:
-
     logging.info("Unable to connect to the database")
 
 # create table for results
@@ -65,7 +64,3 @@ for url in urls:
 
         # convert dictionary to JSON
         response = json.dumps(data)
-
-        # insert record into database
-        cur.execute("INSERT INTO refurb_mac (datetime, response) VALUES (%s, %s)", [now, response])
-        logging.info("New record inserted into database")
