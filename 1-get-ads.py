@@ -1,4 +1,5 @@
 import logging
+import os
 import psycopg2
 import requests
 from bs4 import BeautifulSoup as bs
@@ -7,8 +8,8 @@ import json
 
 # enable logging
 logging.basicConfig(level=logging.INFO,
-                            format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s',
-                                                datefmt="%Y-%m-%d %H:%M:%S")
+                    format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s',
+                    datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -16,9 +17,10 @@ logger.setLevel(logging.INFO)
 try:
 
     # connect to the database
-    conn = psycopg2.connect(database="postgres",
-                            user="postgres",
-                            password="apassword",                                                                                host="localhost")
+    conn = psycopg2.connect(database="ads",
+                            user=os.environ['PSQL_USER'],
+                            password=os.environ['PSQL_PASSWORD'],
+                            host=os.environ['PSQL_HOST'])
 
     # enable autocommit
     conn.autocommit = True
@@ -47,7 +49,7 @@ for a in ads.find_all('a', href=True):
     urls.append("https://www.apple.com" + a['href'])
 
 # print status
-print(len(urls), "URLs obtained")
+logging.info(len(urls), "URLs obtained")
 
 # collect data for each URL
 for url in urls:
@@ -66,4 +68,4 @@ for url in urls:
 
         # insert record into database
         cur.execute("INSERT INTO refurb_mac (datetime, response) VALUES (%s, %s)", [now, response])
-        logger.info("New record inserted into database")
+        logging.info("New record inserted into database")
