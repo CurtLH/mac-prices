@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup as bs
 from datetime import datetime
 import json
+import hashlib
 
 # enable logging
 logging.basicConfig(level=logging.INFO,
@@ -34,9 +35,10 @@ except:
 
 # create table for results
 cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb_raw
-               (id serial,
-                datetime timestamp,
-                response jsonb NOT NULL UNIQUE);""")
+               (id serial PRIMARY KEY,
+                datetime timestamp default current_timestamp,
+                hash uuid UNIQUE NOT NULL,
+                response jsonb);""")
 logging.info("Table created")
 
 # get the URLs for all refurbished computers
@@ -48,7 +50,7 @@ for a in ads.find_all('a', href=True):
     urls.append("https://www.apple.com" + a['href'])
 
 # print status
-logging.info(len(urls), "URLs obtained")
+logging.info("URLs obtained: {}".format(len(urls)))
 
 # collect data for each URL
 for url in urls:
@@ -60,11 +62,17 @@ for url in urls:
         data['url'] = url        
         data['response']= r.content.decode('utf-8')
 
+        # convert the dict to json
+        response = json.dumps(data)
+
+        # create a hash of the data
+        md5 = hashlib.md5(response.encode('utf-8')).hexdigest()
+
 	# try to insert the content into the database
-	try:
-	    cur.execute("""INSERT INTO mac_refurb_raw (datetime, response)
-                           VALUES (current_datetime, %s)""", [json.dumps(data)])
+        try:
+            cur.execute("""INSERT INTO mac_refurb_raw (hash, response)
+                           VALUES (%s, %s)""", [md5, response])
             logging.info("New record inserted into the database")
 
-	except:
-	    logging.info("Duplicate record already exists")
+        except:
+            logging.info("Duplicate record already exists")
