@@ -30,8 +30,6 @@ except:
 # create the table to store the results
 cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb
                (id SERIAL,
-                datetime timestamp default current_timestamp,
-                url varchar,
                 details jsonb,
                 hash uuid UNIQUE NOT NULL);""")
 
@@ -51,8 +49,8 @@ for url in urls:
     md5 = hashlib.md5(details.encode('utf-8')).hexdigest()
 
     try:
-        cur.execute("""INSERT INTO mac_refurb (url, details, hash)
-                       VALUES (%s, %s, %s)""", [url, details, md5])
+        cur.execute("""INSERT INTO mac_refurb (details, hash)
+                       VALUES (%s, %s)""", [details, md5])
         logging.info("New record inserted into database")
 
     except:
