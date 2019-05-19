@@ -99,7 +99,7 @@ def get_details(soup):
 try:
 
     # connect to the database
-    conn = psycopg2.connect(database="ads",
+    conn = psycopg2.connect(database="postgres",
                             user=os.environ['PSQL_USER'],
                             password=os.environ['PSQL_PASSWORD'],
                             host=os.environ['PSQL_HOST'])
@@ -116,10 +116,8 @@ except:
 
 
 # get the data from the table
-cur.execute("""
-        SELECT response
-        FROM refurb_mac;
-        """)
+cur.execute("""SELECT response, datetime
+               FROM mac_refurb_raw;""")
 items = [line for line in cur]
 logging.info("Number of ads to parse: {}:".format(len(items)))
 
@@ -128,23 +126,20 @@ clean = []
 for line in items:
     soup = bs(line[0]['response'], "html.parser")
     specs = get_details(soup)
-    specs['date_collected'] = line[0]['datetime']
+    specs['date_collected'] = line[1]
     specs['url'] = line
     specs['id_num'] = line[0]['url'].split('/')[5]
     specs['color'] = get_color(line[0]['url'].lower())
     clean.append(specs)
 
 # create a table to write clean results to
-cur.execute("""CREATE TABLE IF NOT EXISTS refurb_mac_details
+cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb
                (id SERIAL,
+                datetime timestamp,
                 details jsonb);""")
 
 # load the data into the database
 for line in clean:
-    cur.execute("""
-    INSERT INTO refurb_mac_details 
-    (details)
-    VALUES
-    (%s)
-    """, [json.dumps(line)])
+    cur.execute("""INSERT INTO mac_refurb (datetime, details)
+                   VALUES (%s, %s)""", [line['date_collected'], json.dumps(line)])
     logging.info("New records inserted into the database")

@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 try:
 
     # connect to the database
-    conn = psycopg2.connect(database="ads",
+    conn = psycopg2.connect(database="postgres",
                             user=os.environ['PSQL_USER'],
                             password=os.environ['PSQL_PASSWORD'],
                             host=os.environ['PSQL_HOST'])
@@ -33,10 +33,10 @@ except:
     logging.info("Unable to connect to the database")
 
 # create table for results
-cur.execute("""CREATE TABLE IF NOT EXISTS refurb_mac 
+cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb_raw
                (id serial,
                 datetime timestamp,
-                response jsonb);""")
+                response jsonb NOT NULL UNIQUE);""")
 logging.info("Table created")
 
 # get the URLs for all refurbished computers
@@ -53,14 +53,18 @@ logging.info(len(urls), "URLs obtained")
 # collect data for each URL
 for url in urls:
     r = requests.get(url)
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     if r.status_code == 200:
 
         # put relevant info into a dictionary
         data = {}
-        data['datetime'] = now
         data['url'] = url        
         data['response']= r.content.decode('utf-8')
 
-        # convert dictionary to JSON
-        response = json.dumps(data)
+	# try to insert the content into the database
+	try:
+	    cur.execute("""INSERT INTO mac_refurb_raw (datetime, response)
+                           VALUES (current_datetime, %s)""", [json.dumps(data)])
+            logging.info("New record inserted into the database")
+
+	except:
+	    logging.info("Duplicate record already exists")
