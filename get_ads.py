@@ -30,7 +30,7 @@ except:
 # create the table to store the results
 cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb
                (id SERIAL,
-                details jsonb,
+                specs jsonb,
                 hash uuid UNIQUE NOT NULL);""")
 
 # get the URLs for all of the ads
@@ -49,7 +49,7 @@ for url in urls:
     md5 = hashlib.md5(details.encode('utf-8')).hexdigest()
 
     try:
-        cur.execute("""INSERT INTO mac_refurb (details, hash)
+        cur.execute("""INSERT INTO mac_refurb (specs, hash)
                        VALUES (%s, %s)""", [details, md5])
         logging.info("New record inserted into database")
 
