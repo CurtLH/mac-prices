@@ -4,6 +4,7 @@ import json
 import psycopg2
 from bs4 import BeautifulSoup as bs
 from collections import defaultdict
+from datetime import datetime
 
 # enable logging
 logging.basicConfig(level=logging.INFO,
@@ -116,30 +117,37 @@ except:
 
 
 # get the data from the table
-cur.execute("""SELECT response, datetime
+cur.execute("""SELECT response, datetime, hash
                FROM mac_refurb_raw;""")
 items = [line for line in cur]
-logging.info("Number of ads to parse: {}:".format(len(items)))
+logging.info("Number of ads to parse: {}".format(len(items)))
 
 # iterate over each response and pull out information
 clean = []
 for line in items:
     soup = bs(line[0]['response'], "html.parser")
     specs = get_details(soup)
-    specs['date_collected'] = line[1]
-    specs['url'] = line
+    specs['date_collected'] = datetime.strftime(line[1], '%Y-%m-%d %H:%m:%S')
+    specs['url'] = line[0]['url']
     specs['id_num'] = line[0]['url'].split('/')[5]
     specs['color'] = get_color(line[0]['url'].lower())
+    specs['hash'] = line[2]
     clean.append(specs)
 
 # create a table to write clean results to
 cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb
                (id SERIAL,
                 datetime timestamp,
+                hash uuid UNIQUE NOT NULL,
                 details jsonb);""")
 
 # load the data into the database
 for line in clean:
-    cur.execute("""INSERT INTO mac_refurb (datetime, details)
-                   VALUES (%s, %s)""", [line['date_collected'], json.dumps(line)])
-    logging.info("New records inserted into the database")
+
+    try:
+        cur.execute("""INSERT INTO mac_refurb (datetime, hash, details)
+                       VALUES (%s, %s, %s)""", [line['date_collected'], line['hash'], json.dumps(line)])
+        logging.info("New records inserted into the database")
+
+    except:
+        pass
