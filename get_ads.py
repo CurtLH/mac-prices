@@ -31,6 +31,7 @@ except:
 cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb
                (id SERIAL,
                 datetime timestamp default current_timestamp,
+                url varchar,
                 specs jsonb,
                 hash uuid UNIQUE NOT NULL);""")
 
@@ -40,7 +41,7 @@ r = requests.get("https://www.apple.com/shop/refurbished/mac/macbook-pro")
 soup = bs(r.content, "html.parser")
 ads = soup.find("div",{"class":"refurbished-category-grid-no-js"})
 for a in ads.find_all('a', href=True):
-    urls.append("https://www.apple.com" + a['href'])
+    urls.append("https://www.apple.com" + a['href'].split('?')[0])
 logging.info("URLs obtained: {}".format(len(urls)))
 
 # collect content on the webpage for each URL
