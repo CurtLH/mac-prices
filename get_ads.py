@@ -30,6 +30,7 @@ except:
 # create the table to store the results
 cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb
                (id SERIAL,
+                datetime timestamp default current_timestamp,
                 specs jsonb,
                 hash uuid UNIQUE NOT NULL);""")
 
