@@ -56,5 +56,5 @@ for url in urls:
         logging.info("New record inserted into database")
 
     except:
-        logging.info("Record not inserted into database")
+        #logging.info("Record not inserted into database")
         pass
