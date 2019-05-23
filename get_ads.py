@@ -37,7 +37,7 @@ cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb
 
 # get the URLs for all of the ads
 urls = []
-r = requests.get("https://www.apple.com/shop/refurbished/mac/macbook-pro")
+r = requests.get("https://www.apple.com/shop/refurbished/mac")
 soup = bs(r.content, "html.parser")
 ads = soup.find("div",{"class":"refurbished-category-grid-no-js"})
 for a in ads.find_all('a', href=True):
