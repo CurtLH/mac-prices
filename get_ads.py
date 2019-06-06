@@ -45,16 +45,21 @@ for a in ads.find_all('a', href=True):
 logging.info("URLs obtained: {}".format(len(urls)))
 
 # collect content on the webpage for each URL
+cnt = 0
+    
 for url in urls:
-    specs = macbook.get_details(url)
+    specs = get_details(url)
     details = json.dumps(specs)
     md5 = hashlib.md5(details.encode('utf-8')).hexdigest()
-
+    
     try:
         cur.execute("""INSERT INTO mac_refurb (specs, hash)
                        VALUES (%s, %s)""", [details, md5])
-        logging.info("New record inserted into database")
-
+        print("New record inserted into database")
+        cnt += 1
+    
     except:
-        #logging.info("Record not inserted into database")
+        #print("Record not inserted into database")
         pass
+        
+print("New records collected: {}".format(cnt))
