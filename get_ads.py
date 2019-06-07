@@ -59,11 +59,11 @@ for url in urls:
     try:
         cur.execute("""INSERT INTO mac_refurb (specs, hash)
                        VALUES (%s, %s)""", [details, md5])
-        print("New record inserted into database")
+        logging.info("New record inserted into database")
         cnt += 1
     
     except:
         #print("Record not inserted into database")
         pass
         
-print("New records collected: {}".format(cnt))
+logging.info("New records collected: {}".format(cnt))
