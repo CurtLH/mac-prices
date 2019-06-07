@@ -13,12 +13,16 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# load credentials
+with open("/home/curtis/credentials.json") as f:
+    creds = json.load(f)
+
 # connect to the database
 try:
     conn = psycopg2.connect(database="postgres",
-                            user=os.environ['PSQL_USER'],
-                            password=os.environ['PSQL_PASSWORD'],
-                            host=os.environ['PSQL_HOST'])
+                            user=creds["user"],
+                            password=creds["password"],
+                            host=creds["host"])
 
     conn.autocommit = True
     cur = conn.cursor()
@@ -48,7 +52,7 @@ logging.info("URLs obtained: {}".format(len(urls)))
 cnt = 0
     
 for url in urls:
-    specs = get_details(url)
+    specs = macbook.get_details(url)
     details = json.dumps(specs)
     md5 = hashlib.md5(details.encode('utf-8')).hexdigest()
     
