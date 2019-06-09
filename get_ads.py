@@ -19,7 +19,7 @@ with open("/home/curtis/credentials.json") as f:
 
 # connect to the database
 try:
-    conn = psycopg2.connect(database="postgres",
+    conn = psycopg2.connect(database=creds["database"],
                             user=creds["user"],
                             password=creds["password"],
                             host=creds["host"])
