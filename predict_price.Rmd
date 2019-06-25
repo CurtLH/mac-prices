@@ -1,0 +1,116 @@
+---
+title: "Refusbished Macbook Pro Prices"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(RPostgreSQL)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+# connect to the database
+con <- dbConnect(dbDriver("PostgreSQL"), 
+                 dbname = "curtis",
+                 host = "localhost", 
+                 port = 5432,
+                 user = "curtis", 
+                 password = "apassword")
+
+# make sure the table exists
+dbExistsTable(con, "mac_refurb")
+
+# define the query
+query <- "SELECT specs ->> 'url' AS url,
+                 specs ->> 'date' AS date,
+                 specs ->> 'color' AS color,
+                 jsonb_array_elements_text(specs -> 'memory') AS memory,
+                 specs ->> 'screen' AS screen,
+                 jsonb_array_elements_text(specs -> 'storage') AS storage,
+                 (specs ->> 'price')::float AS price
+          FROM mac_refurb"
+
+# store query results in a dataframe
+df <- dbGetQuery(con, query)
+
+# check the number of rows returned
+nrow(df)
+
+# inspect data
+head(df)
+```
+
+```{r}
+# disconnect from the database
+dbDisconnect(con)
+```
+
+```{r}
+# get just the macbook pro
+mbp <- df %>%
+  filter(grepl("macbook-pro", tolower(url)))
+
+# inspect how many rows
+nrow(mbp)
+```
+
+
+```{r}
+# fit a linear model to predict the price
+fit <- lm(data = mbp, price ~ date + memory + storage)
+
+# inspect the fit of the model
+summary(fit)
+```
+
+```{r}
+# plot the fit of the model
+plot(fit)
+```
+
+
+```{r}
+# join predicted vs actual  prices and sort by residual value
+results <- bind_cols(
+  pred = predict(fit), 
+  price = mbp$price, 
+  resid = resid(fit), 
+  std_resid = rstandard(fit), 
+  mbp
+  ) %>%
+  arrange(resid)
+
+# inspect predictions
+head(results)
+```
+
+```{r}
+# inspect one prediction
+results[1, ]$url
+```
+
+```{r}
+# for the residuals vs date
+results %>%
+  mutate(
+    date = recode_factor(date, 
+                         "orignially released may 2015" = "May 2015",
+                         "orignially released october 2016" = "October 2016", 
+                         "orignially released june 2017" = "June 2017", 
+                         "orignially released july 2018" = "July 2018",
+                         .ordered = TRUE
+                         )
+  ) %>%
+  ggplot(aes(x=reorder(date, desc(date)), y=resid, fill=date)) +
+    geom_boxplot(show.legend = FALSE) +
+    labs(
+      x = NULL,
+      y = "Residual Price"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
