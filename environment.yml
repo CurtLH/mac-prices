@@ -3,6 +3,7 @@ channels:
   - anaconda
 dependencies:
   - python = 3.7
+  - jupyterlab
   - requests
   - psycopg2
   - pandas
