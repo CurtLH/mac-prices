@@ -1,4 +1,4 @@
-name: mbp-env
+name: mac-dev
 channels:
   - anaconda
 dependencies:
