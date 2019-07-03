@@ -7,8 +7,7 @@ output:
 
 ```{r}
 library(RPostgreSQL)
-library(dplyr)
-library(ggplot2)
+library(tidyverse)
 ```
 
 ```{r}
@@ -25,42 +24,87 @@ dbExistsTable(con, "mac_refurb")
 
 # define the query
 query <- "SELECT specs ->> 'url' AS url,
-                 specs ->> 'date' AS date,
                  specs ->> 'color' AS color,
                  jsonb_array_elements_text(specs -> 'memory') AS memory,
                  specs ->> 'screen' AS screen,
                  jsonb_array_elements_text(specs -> 'storage') AS storage,
                  (specs ->> 'price')::float AS price
-          FROM mac_refurb"
+          FROM mac_refurb
+          WHERE LOWER(specs ->> 'url') LIKE '%macbook-pro%' AND
+                specs ->> 'date' LIKE '%2018'
+"
 
 # store query results in a dataframe
 df <- dbGetQuery(con, query)
 
-# check the number of rows returned
-nrow(df)
+# disconnect from the database
+dbDisconnect(con)
 
 # inspect data
 head(df)
 ```
 
 ```{r}
-# disconnect from the database
-dbDisconnect(con)
+# convert characters to factors
+mbp <- df %>%
+  separate(screen, into=c("screen"), sep = " ", extra = "drop") %>%
+  separate(storage, into=c("storage"), sep = " ", extra = "drop") %>%
+  mutate(
+    color = as.factor(color),
+    screen = recode_factor(
+      screen,
+      "13.3-inch" = "13 inch",
+      "15.4-inch" = "15 inch",
+      .ordered = TRUE
+    ),
+    memory = recode_factor(
+      memory,
+      "8gb of 2133mhz lpddr3 onboard memory" = "8GB LPDDR3",
+      "16gb of 2133mhz lpddr3 onboard memory" = "16GB LPDDR3",
+      "16gb of 2400mhz ddr4 onboard memory" = "16GB DDR4",
+      "32gb of 2400mhz ddr4 onboard memory" = "32GB DDR4",
+      .ordered = TRUE
+    ),
+    storage = recode_factor(
+      storage,
+      "256gb" = "256GB",
+      "512gb" = "512GB",
+      "1tb" = "1TB",
+      "2tb" = "2TB",
+      "4tb" = "4TB",
+      .ordered = TRUE
+    )
+  )
+
+# inspect data
+head(mbp)
 ```
 
 ```{r}
-# get just the macbook pro
-mbp <- df %>%
-  filter(grepl("macbook-pro", tolower(url)))
-
-# inspect how many rows
-nrow(mbp)
+# plot color vs price
+ggplot(data=mbp, (aes(y=price, x=color, fill=color))) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "Price vs. Color",
+    x = NULL,
+    y = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust=0.5)
+  )
 ```
 
+```{r}
+# check if the difference between price is significant
+t.test(price ~ color, data = mbp)
+```
+
+The null hypothesis assumes that the difference between colors is equal to 0. Given the results of the t-test (p > 0.05), we fail to reject the null hypothesis. This implies that there is no significant difference in price between Silver and Space Gray computers.
 
 ```{r}
 # fit a linear model to predict the price
-fit <- lm(data = mbp, price ~ date + memory + storage)
+fit <- lm(data = mbp, price ~ memory + storage)
 
 # inspect the fit of the model
 summary(fit)
@@ -88,29 +132,22 @@ head(results)
 ```
 
 ```{r}
-# inspect one prediction
-results[1, ]$url
+# plot residuals by memory
+ggplot(data=results, (aes(y=resid, x=memory, fill=memory))) +
+  geom_boxplot(alpha=0.5, show.legend = FALSE) +
+  labs(
+    title = "Residual Values by Memory",
+    x = NULL,
+    y = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust=0.5)
+  )
 ```
 
 ```{r}
-# for the residuals vs date
-results %>%
-  mutate(
-    date = recode_factor(date, 
-                         "orignially released may 2015" = "May 2015",
-                         "orignially released october 2016" = "October 2016", 
-                         "orignially released june 2017" = "June 2017", 
-                         "orignially released july 2018" = "July 2018",
-                         .ordered = TRUE
-                         )
-  ) %>%
-  ggplot(aes(x=reorder(date, desc(date)), y=resid, fill=date)) +
-    geom_boxplot(show.legend = FALSE) +
-    labs(
-      x = NULL,
-      y = "Residual Price"
-    ) +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# check out the computer the biggest difference between the predicted value and the actual value
+results[1, ]
 ```
 
