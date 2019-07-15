@@ -1,11 +1,8 @@
 import logging
-import os
+import json
 import psycopg2
 import requests
 from bs4 import BeautifulSoup as bs
-import json
-import hashlib
-import macbook
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s',
