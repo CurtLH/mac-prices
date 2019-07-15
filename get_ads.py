@@ -55,7 +55,7 @@ for url in urls:
     r = requests.get(url)
     if r.status_code == 200:
         cur.execute("""INSERT INTO apple_refurb_raw (url, html)
-                       VALUES (%s)""", [url, r.text])
+                       VALUES (%s, %s)""", [url, r.text])
         logging.info("New record inserted into database")
         cnt += 1
     
