@@ -32,12 +32,11 @@ except:
     logging.info("Unable to connect to the database")
 
 # create the table to store the results
-cur.execute("""CREATE TABLE IF NOT EXISTS mac_refurb
+cur.execute("""CREATE TABLE IF NOT EXISTS mbp_raw
                (id SERIAL,
                 datetime timestamp default current_timestamp,
                 url varchar,
-                specs jsonb,
-                hash uuid UNIQUE NOT NULL);""")
+                html varchar);""")
 
 # get the URLs for all of the ads
 urls = []
@@ -45,24 +44,24 @@ r = requests.get("https://www.apple.com/shop/refurbished/mac/macbook-pro")
 soup = bs(r.content, "html.parser")
 ads = soup.find("div",{"class":"refurbished-category-grid-no-js"})
 for a in ads.find_all('a', href=True):
-    urls.append("https://www.apple.com" + a['href'].split('?')[0])
+    url = "https://www.apple.com" + a['href'].split('?')[0]
+    if 'macbook-pro' in url.lower():
+        urls.append(url)
 logging.info("URLs obtained: {}".format(len(urls)))
 
 # collect content on the webpage for each URL
 cnt = 0
     
 for url in urls:
-    specs = macbook.get_details(url)
-    details = json.dumps(specs)
-    md5 = hashlib.md5(details.encode('utf-8')).hexdigest()
-    
-    try:
-        cur.execute("""INSERT INTO mac_refurb (specs, hash)
-                       VALUES (%s, %s)""", [details, md5])
+    r = requests.get(url)
+    if r.status_code == 200:
+
+        cur.execute("""INSERT INTO mbp_raw (html)
+                       VALUES (%s)""", [r.text])
         logging.info("New record inserted into database")
         cnt += 1
     
-    except:
+    else:
         #print("Record not inserted into database")
         pass
         
