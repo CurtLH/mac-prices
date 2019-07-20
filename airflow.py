@@ -12,7 +12,6 @@ default_args = {
 
 dag = DAG(
     'apples', default_args=default_args, schedule_interval='@daily')
-)
 
 def get_ads():
 
