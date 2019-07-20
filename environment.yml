@@ -1,10 +1,10 @@
 name: mac-dev
 channels:
   - anaconda
+  - conda-forge
 dependencies:
   - python = 3.7
   - jupyterlab
   - requests
   - psycopg2
-  - pandas
   - scikit-learn

@@ -104,7 +104,7 @@ The null hypothesis assumes that the difference between colors is equal to 0. Gi
 
 ```{r}
 # fit a linear model to predict the price
-fit <- lm(data = mbp, price ~ memory + storage)
+fit <- lm(data = mbp, price ~ color + screen + storage)
 
 # inspect the fit of the model
 summary(fit)
