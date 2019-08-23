@@ -23,11 +23,11 @@ def get_ads():
         url = "https://www.apple.com" + a['href'].split('?')[0]
         urls.append(url)
 
-    conn = PostgresHook(postgres_conn_id = "postgres_default", schema="curtis").get_conn()
+    conn = PostgresHook(postgres_conn_id = "postgres_curtis", schema="curtis").get_conn()
     conn.autocommit = True
     cur = conn.cursor()
 
-    for url in urls[:10]:
+    for url in urls:
         r = requests.get(url)
         if r.status_code == 200:
             cur.execute("""INSERT INTO apple_refurb_raw_2 (url, html)
